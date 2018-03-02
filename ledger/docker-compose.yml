@@ -130,9 +130,10 @@ services:
         - /var/run/:/host/var/run/
         - ./chaincode/:/opt/gopath/src/github.com/
         - ./crypto-config:/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/
+        - ./channel-artifacts:/opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts
     networks:
         - viadee
-    #depends_on:
-    #  - orderer.example.com
-    #  - peer0.org1.example.com
-    #  - couchdb
+    depends_on:
+      - orderer.hrw.com
+      - peer0.org1.hrw.com
+      - peer0.org2.hrw.com
