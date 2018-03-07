@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"strconv"
 
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 	sc "github.com/hyperledger/fabric/protos/peer"
@@ -20,6 +21,8 @@ type Good struct {
 	Owner        string `json:"owner"`
 }
 
+var statBarcode = 10
+
 func (s *SmartContract) Init(APIstub shim.ChaincodeStubInterface) sc.Response {
 	return shim.Success(nil)
 }
@@ -27,52 +30,66 @@ func (s *SmartContract) Invoke(APIstub shim.ChaincodeStubInterface) sc.Response 
 	function, args := APIstub.GetFunctionAndParameters()
 
 	if function == "queryGoodsByOwner" {
-		return s.queryGoodsByOwner(APIstub, args)
+		return s.queryAllGoods(APIstub, args)
 	} else if function == "initLedger" {
 		return s.initLedger(APIstub)
+	} else if function == "changeOwner" {
+		return s.changeOwner(APIstub, args)
+	} else if function == "createGood" {
+		return s.createGood(APIstub, args)
 	}
 
 	return shim.Error("Smart Contract Funktion nicht gefunden.")
 }
+func (s *SmartContract) createGood(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
+	if len(args) != 5 {
+		return shim.Error("Parameteranzahl falsch. Erwarte 5")
+	}
+	localBarcode := ""
+	if statBarcode >= 10 && statBarcode < 100 {
+		localBarcode = "100" + strconv.Itoa(statBarcode)
+	} else if statBarcode >= 100 && statBarcode < 1000 {
+		localBarcode = "10" + strconv.Itoa(statBarcode)
+	}
+	var good = Good{Barcode: localBarcode, Beschreibung: args[0], Menge: args[1], Produzent: args[2], Status: args[3], Owner: args[4]}
+	goodsAsBytes, _ := json.Marshal(good)
+	APIstub.PutState("GOOD"+strconv.Itoa(statBarcode), goodsAsBytes)
+	statBarcode = statBarcode + 1
+	return shim.Success(nil)
+}
+func (s *SmartContract) changeOwner(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
+	return shim.Success(nil)
+}
 func (s *SmartContract) initLedger(APIstub shim.ChaincodeStubInterface) sc.Response {
 	goods := []Good{
-		Good{Barcode: "AAAA1", Beschreibung: "Holzfigur", Menge: "100", Produzent: "ProduzentA", Status: "Prod", Owner: "ProduzentA"},
-		Good{Barcode: "AAAA2", Beschreibung: "Steinskulptur", Menge: "80", Produzent: "ProduzentA", Status: "Prod", Owner: "ProduzentA"},
-		Good{Barcode: "AAAA3", Beschreibung: "Plastikhaus", Menge: "10", Produzent: "ProduzentA", Status: "Prod", Owner: "ProduzentA"},
-		Good{Barcode: "BBBB1", Beschreibung: "Holzfigur", Menge: "100", Produzent: "ProduzentA", Status: "Lief", Owner: "LieferantA"},
-		Good{Barcode: "BBBB2", Beschreibung: "Steinskulptur", Menge: "80", Produzent: "ProduzentA", Status: "Lief", Owner: "LieferantA"},
-		Good{Barcode: "BBBB3", Beschreibung: "Plastikhaus", Menge: "10", Produzent: "ProduzentA", Status: "Lief", Owner: "LieferantA"},
-		Good{Barcode: "CCCC1", Beschreibung: "Holzfigur", Menge: "100", Produzent: "ProduzentA", Status: "Done", Owner: "VerkaufA"},
-		Good{Barcode: "CCCC2", Beschreibung: "Steinskulptur", Menge: "80", Produzent: "ProduzentA", Status: "Done", Owner: "VerkaufA"},
-		Good{Barcode: "CCCC3", Beschreibung: "Plastikhaus", Menge: "10", Produzent: "ProduzentA", Status: "Done", Owner: "VerkaufA"},
+		Good{Barcode: "10000", Beschreibung: "Holzfigur", Menge: "100", Produzent: "ProduzentA", Status: "Prod", Owner: "ProduzentA"},
+		Good{Barcode: "10001", Beschreibung: "Steinskulptur", Menge: "80", Produzent: "ProduzentA", Status: "Prod", Owner: "ProduzentA"},
+		Good{Barcode: "10002", Beschreibung: "Plastikhaus", Menge: "10", Produzent: "ProduzentA", Status: "Prod", Owner: "ProduzentA"},
+		Good{Barcode: "10003", Beschreibung: "Holzfigur", Menge: "100", Produzent: "ProduzentA", Status: "Lief", Owner: "LieferantA"},
+		Good{Barcode: "10004", Beschreibung: "Steinskulptur", Menge: "80", Produzent: "ProduzentA", Status: "Lief", Owner: "LieferantA"},
+		Good{Barcode: "10005", Beschreibung: "Plastikhaus", Menge: "10", Produzent: "ProduzentA", Status: "Lief", Owner: "LieferantA"},
+		Good{Barcode: "10006", Beschreibung: "Holzfigur", Menge: "100", Produzent: "ProduzentA", Status: "Done", Owner: "VerkaufA"},
+		Good{Barcode: "10007", Beschreibung: "Steinskulptur", Menge: "80", Produzent: "ProduzentA", Status: "Done", Owner: "VerkaufA"},
+		Good{Barcode: "10008", Beschreibung: "Plastikhaus", Menge: "10", Produzent: "ProduzentA", Status: "Done", Owner: "VerkaufA"},
+		Good{Barcode: "10009", Beschreibung: "Plastikhaus", Menge: "10", Produzent: "ProduzentA", Status: "Done", Owner: "VerkaufA"},
 	}
 	i := 0
 	for i < len(goods) {
 		goodsAsBytes, _ := json.Marshal(goods[i])
-		APIstub.PutState(goods[i].Barcode, goodsAsBytes)
+		APIstub.PutState("GOOD"+strconv.Itoa(i), goodsAsBytes)
 		fmt.Println("Added ", goods[i])
+		i = i + 1
 	}
 	return shim.Success(nil)
 }
-func (s *SmartContract) queryGoodsByOwner(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
+func (s *SmartContract) queryAllGoods(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
 
 	if len(args) != 1 {
 		return shim.Error("Parameteranzahl falsch. Benötige mindestens 1")
 	}
-	startKey := ""
-	endKey := ""
+	startKey := "GOOD0"
+	endKey := "GOOD999"
 
-	if args[0] == "Produzent" {
-		startKey = "AAAA1"
-		endKey = "AAAA99"
-	} else if args[0] == "Lieferant" {
-		startKey = "BBBB1"
-		endKey = "BBBB99"
-	} else {
-		//Verkäufer
-		startKey = "CCCC1"
-		endKey = "CCCC99"
-	}
 	resultsIterator, err := APIstub.GetStateByRange(startKey, endKey)
 	if err != nil {
 		return shim.Error(err.Error())
