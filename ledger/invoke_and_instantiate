@@ -1,9 +1,19 @@
+##PEER0 ORG1 INSTALL CHAINCODE##
 docker exec -e "CORE_PEER_LOCALMSPID=Org1MSP" -e "CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.hrw.com/users/Admin@org1.hrw.com/msp" cli peer chaincode install -n supply -v 1.0 -p github.com/supply
 
-docker exec -e "CORE_PEER_LOCALMSPID=Org1MSP" -e "CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.hrw.com/users/Admin@org1.hrw.com/msp" cli peer chaincode instantiate -o orderer.hrw.com:7050 -C mychannel -n supply -v 1.0 -c '{"Args":[""]}' -P "OR ('Org1MSP.member','Org2MSP.member')"
+##PEER0 ORG2 INSTALL CHAINCODE##
+docker exec -e "CORE_PEER_LOCALMSPID=Org2MSP" -e "CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org2.hrw.com/users/Admin@org2.hrw.com/msp" -e CORE_PEER_ADDRESS=peer0.org2.hrw.com:7051 cli peer chaincode install -n supply -v 1.0 -p github.com/supply
 
-docker exec -e "CORE_PEER_LOCALMSPID=Org1MSP" -e "CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.hrw.com/users/Admin@org1.hrw.com/msp" cli peer chaincode invoke -o orderer.hrw.com:7050 -C mychannel -n supply -c '{"function":"initLedger","Args":[""]}'
+###PEER0 ORG1 INSTANTIATE CHAINCODE##
+docker exec -e "CORE_PEER_LOCALMSPID=Org1MSP" -e "CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.hrw.com/users/Admin@org1.hrw.com/msp"  cli peer chaincode instantiate -o orderer.hrw.com:7050 -C mychannel -n supply -v 1.0 -c '{"Args":[""]}' -P "OR ('Org1MSP.member','Org2MSP.member')"
 
-docker exec -e "CORE_PEER_LOCALMSPID=Org1MSP" -e "CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.hrw.com/users/Admin@org1.hrw.com/msp" cli peer chaincode query -o orderer.hrw.com:7050 -C mychannel -n supply -c '{"function":"queryGoodsByOwner","Args":["A"]}'
+##PEER0 ORG2 INVOKE CHAINCODE##
+docker exec -e "CORE_PEER_LOCALMSPID=Org2MSP" -e "CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org2.hrw.com/users/Admin@org2.hrw.com/msp" -e CORE_PEER_ADDRESS=peer0.org2.hrw.com:7051 cli peer chaincode invoke -o orderer.hrw.com:7050 -C mychannel -n supply -c '{"function":"initLedger","Args":[""]}'
 
-docker exec -e "CORE_PEER_LOCALMSPID=Org1MSP" -e "CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.hrw.com/users/Admin@org1.hrw.com/msp" cli peer chaincode invoke -o orderer.hrw.com:7050 -C mychannel -n supply -c '{"function":"createGood","Args":["Beschreibung", "10", "ProduzentA", "Prod", "ProduzentA"]}'
+##PEER0 ORG1 QUERY##
+docker exec -e "CORE_PEER_LOCALMSPID=Org1MSP" -e "CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.hrw.com/users/Admin@org1.hrw.com/msp" cli peer chaincode query -o orderer.hrw.com:7050 -C mychannel -n supply -c '{"function":"queryAllGoods","Args":["A"]}'
+
+##PEER0 ORG2 QUERY##
+docker exec -e "CORE_PEER_LOCALMSPID=Org2MSP" -e "CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org2.hrw.com/users/Admin@org2.hrw.com/msp" -e CORE_PEER_ADDRESS=peer0.org2.hrw.com:7051 cli peer chaincode query -o orderer.hrw.com:7050 -C mychannel -n supply -c '{"function":"queryAllGoods","Args":["A"]}'
+
+docker exec -e "CORE_PEER_LOCALMSPID=Org1MSP" -e "CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.hrw.com/users/Admin@org1.hrw.com/msp" cli peer chaincode invoke -o orderer.hrw.com:7050 -C mychannel -n supply -c '{"function":"createGood","Args":["10141","Beschreibung", "10", "ProduzentA", "Prod", "ProduzentA"]}'
