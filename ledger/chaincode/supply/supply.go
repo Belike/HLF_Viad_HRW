@@ -38,6 +38,10 @@ func getStatus(input string) (status string) {
 var id = 0
 
 func (s *SmartContract) Init(APIstub shim.ChaincodeStubInterface) sc.Response {
+	max := MAX{}
+	max.ID = "0"
+	maxAsBytes, _ := json.Marshal(max)
+	APIstub.PutState("ID", maxAsBytes)
 	return shim.Success(nil)
 }
 func (s *SmartContract) Invoke(APIstub shim.ChaincodeStubInterface) sc.Response {
@@ -70,6 +74,10 @@ func (s *SmartContract) changeOwnerByBarcode(APIstub shim.ChaincodeStubInterface
 	if len(args) != 2 {
 		return shim.Error("Parameteranzahl falsch. Erwarte 2")
 	}
+	maxAsBytes, _ := APIstub.GetState("ID")
+	max := MAX{}
+	json.Unmarshal(maxAsBytes, &max)
+	id, _ = strconv.Atoi(max.ID)
 	i := 0
 	for i < id {
 		goodsAsBytes, _ := APIstub.GetState(strconv.Itoa(i))
@@ -90,19 +98,17 @@ func (s *SmartContract) createGood(APIstub shim.ChaincodeStubInterface, args []s
 	if len(args) != 6 {
 		return shim.Error("Parameteranzahl falsch. Erwarte 6")
 	}
-	maxToCheckAsBytes, _ := APIstub.GetState("ID")
-	maxToCheck := MAX{}
-	json.Unmarshal(maxToCheckAsBytes, &maxToCheck)
+	maxAsBytes, _ := APIstub.GetState("ID")
+	max := MAX{}
+	json.Unmarshal(maxAsBytes, &max)
+	id, _ = strconv.Atoi(max.ID)
 	var good = Good{Barcode: args[0], Beschreibung: args[1], Menge: args[2], Produzent: args[3], Status: args[4], Owner: args[5]}
 	goodsAsBytes, _ := json.Marshal(good)
-	APIstub.PutState(maxToCheck.ID, goodsAsBytes)
-	id, _ := strconv.Atoi(maxToCheck.ID)
+	APIstub.PutState(max.ID, goodsAsBytes)
 	id = id + 1
-
-	var max = MAX{ID: strconv.Itoa(id)}
-	maxAsBytes, _ := json.Marshal(max)
+	max.ID = strconv.Itoa(id)
+	maxAsBytes, _ = json.Marshal(max)
 	APIstub.PutState("ID", maxAsBytes)
-
 	return shim.Success(nil)
 }
 func (s *SmartContract) changeOwnerByID(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
@@ -110,16 +116,10 @@ func (s *SmartContract) changeOwnerByID(APIstub shim.ChaincodeStubInterface, arg
 	good := Good{}
 	json.Unmarshal(goodsAsBytes, &good)
 	good.Owner = args[1]
-	if args[1] == "ProduzentA" {
-		good.Status = "Produziert"
-	} else if args[1] == "LieferantA" {
-		good.Status = "Lieferung"
-	} else if args[2] == "VerkaufA" {
-		good.Status = "Geliefert"
-	}
+	good.Status = getStatus(good.Owner)
 	goodsAsBytes, _ = json.Marshal(good)
-	APIstub.PutState(args[0], goodsAsBytes)
 
+	APIstub.PutState(args[0], goodsAsBytes)
 	return shim.Success(nil)
 }
 func (s *SmartContract) initLedger(APIstub shim.ChaincodeStubInterface) sc.Response {

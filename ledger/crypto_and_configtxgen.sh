@@ -20,12 +20,13 @@ if [ ! -d channel-artifacts ] ; then
 fi
 sleep 2
 echo "### Genesis und ChannelTx werden erstellt... ###"
-configtxgen -profile TwoOrgsOrdererGenesis -outputBlock ./channel-artifacts/genesis.block
-configtxgen -profile TwoOrgsChannel -outputCreateChannelTx ./channel-artifacts/channel.tx -channelID $CHANNEL_NAME
+configtxgen -profile ThreeOrgsOrdererGenesis -outputBlock ./channel-artifacts/genesis.block
+configtxgen -profile ThreeOrgsChannel -outputCreateChannelTx ./channel-artifacts/channel.tx -channelID $CHANNEL_NAME
 sleep 5
 echo "############## AnchorPeersUpdate ##############"
-configtxgen -profile TwoOrgsChannel -outputAnchorPeersUpdate ./channel-artifacts/Org1MSPanchors.tx -channelID $CHANNEL_NAME -asOrg Org1MSP
-configtxgen -profile TwoOrgsChannel -outputAnchorPeersUpdate ./channel-artifacts/Org2MSPanchors.tx -channelID $CHANNEL_NAME -asOrg Org2MSP
+configtxgen -profile ThreeOrgsChannel -outputAnchorPeersUpdate ./channel-artifacts/Org1MSPanchors.tx -channelID $CHANNEL_NAME -asOrg Org1MSP
+configtxgen -profile ThreeOrgsChannel -outputAnchorPeersUpdate ./channel-artifacts/Org2MSPanchors.tx -channelID $CHANNEL_NAME -asOrg Org2MSP
+configtxgen -profile ThreeOrgsChannel -outputAnchorPeersUpdate ./channel-artifacts/Org3MSPanchors.tx -channelID $CHANNEL_NAME -asOrg Org3MSP
 sleep 2
 echo "######### Netzwerk wird gestartet... #########"
 CHANNEL_NAME=$CHANNEL_NAME docker-compose -f docker-compose.yml up -d
@@ -38,11 +39,17 @@ docker exec -it cli peer channel update -o orderer.hrw.com:7050 -c mychannel -f 
 echo "## Peer0.Org2.HRW.COM Definition gestartet ## "
 docker exec -e "CORE_PEER_LOCALMSPID=Org2MSP" -e "CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org2.hrw.com/users/Admin@org2.hrw.com/msp" -e "CORE_PEER_ADDRESS=peer0.org2.hrw.com:7051" -it cli peer channel join -b mychannel.block
 docker exec -e "CORE_PEER_LOCALMSPID=Org2MSP" -e "CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org2.hrw.com/users/Admin@org2.hrw.com/msp" -e "CORE_PEER_ADDRESS=peer0.org2.hrw.com:7051" -it cli peer channel update -o orderer.hrw.com:7050 -c mychannel -f ./channel-artifacts/Org2MSPanchors.tx
+echo "## Peer0.Org3.HRW.COM Definition gestartet ## "
+docker exec -e "CORE_PEER_LOCALMSPID=Org3MSP" -e "CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org3.hrw.com/users/Admin@org3.hrw.com/msp" -e "CORE_PEER_ADDRESS=peer0.org3.hrw.com:7051" -it cli peer channel join -b mychannel.block
+docker exec -e "CORE_PEER_LOCALMSPID=Org3MSP" -e "CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org3.hrw.com/users/Admin@org3.hrw.com/msp" -e "CORE_PEER_ADDRESS=peer0.org3.hrw.com:7051" -it cli peer channel update -o orderer.hrw.com:7050 -c mychannel -f ./channel-artifacts/Org3MSPanchors.tx
 echo "### Netz gestartet, warte 5 sekunden.... ###"
 sleep 5
 echo "#### PEER0 ORG1 INSTALL CHAINCODE Supply ###"
 docker exec -e "CORE_PEER_LOCALMSPID=Org1MSP" -e "CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.hrw.com/users/Admin@org1.hrw.com/msp" cli peer chaincode install -n supply -v 1.0 -p github.com/supply
 echo "#### PEER0 ORG2 INSTALL CHAINCODE Supply ###"
 docker exec -e "CORE_PEER_LOCALMSPID=Org2MSP" -e "CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org2.hrw.com/users/Admin@org2.hrw.com/msp" -e CORE_PEER_ADDRESS=peer0.org2.hrw.com:7051 cli peer chaincode install -n supply -v 1.0 -p github.com/supply
+echo "#### PEER0 ORG3 INSTALL CHAINCODE Supply ###"
+docker exec -e "CORE_PEER_LOCALMSPID=Org3MSP" -e "CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org3.hrw.com/users/Admin@org3.hrw.com/msp" -e CORE_PEER_ADDRESS=peer0.org3.hrw.com:7051 cli peer chaincode install -n supply -v 1.0 -p github.com/supply
+sleep 20
 echo "##### PEER0 ORG1 INSTANTIATE CHAINCODE #####"
 docker exec -e "CORE_PEER_LOCALMSPID=Org1MSP" -e "CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.hrw.com/users/Admin@org1.hrw.com/msp"  cli peer chaincode instantiate -o orderer.hrw.com:7050 -C mychannel -n supply -v 1.0 -c '{"Args":[""]}' -P "OR ('Org1MSP.member','Org2MSP.member')"
