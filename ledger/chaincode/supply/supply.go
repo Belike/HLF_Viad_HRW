@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 	sc "github.com/hyperledger/fabric/protos/peer"
@@ -59,9 +60,75 @@ func (s *SmartContract) Invoke(APIstub shim.ChaincodeStubInterface) sc.Response 
 		return s.changeOwnerByBarcode(APIstub, args)
 	} else if function == "getMaxID" {
 		return s.getMaxID(APIstub)
+	} else if function == "historyOfKey" {
+		return s.historyOfKey(APIstub, args)
+	} else if function == "deleteGoodByID" {
+		return s.deleteGoodByID(APIstub, args)
 	}
 
 	return shim.Error("Smart Contract Funktion nicht gefunden.")
+}
+func (s *SmartContract) deleteGoodByID(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
+	if len(args) != 1 {
+		return shim.Error("Falsche Parameteranzahl. Erwarte 1")
+	}
+	id := args[0]
+	err := APIstub.DelState(id)
+	if err != nil {
+		return shim.Error("Löschen fehlgeschlagen: " + err.Error())
+	}
+	return shim.Success(nil)
+}
+func (s *SmartContract) historyOfKey(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
+	if len(args) < 1 {
+		return shim.Error("Mindestens ein Parameter muss übergeben werden")
+	}
+	id := args[0]
+	resultsIterator, err := APIstub.GetHistoryForKey(id)
+
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+	defer resultsIterator.Close()
+
+	var buffer bytes.Buffer
+	buffer.WriteString("[")
+	bArrayMemberAlreadyWritten := false
+
+	for resultsIterator.HasNext() {
+		response, err := resultsIterator.Next()
+		if err != nil {
+			return shim.Error(err.Error())
+		}
+		if bArrayMemberAlreadyWritten == true {
+			buffer.WriteString(",")
+		}
+		buffer.WriteString("{\"TxId\":")
+		buffer.WriteString("\"")
+		buffer.WriteString(response.TxId)
+		buffer.WriteString("\"")
+		buffer.WriteString(", \"Value\":")
+		if response.IsDelete {
+			buffer.WriteString("null")
+		} else {
+			buffer.WriteString(string(response.Value))
+		}
+
+		buffer.WriteString(", \"Timestamp\":")
+		buffer.WriteString("\"")
+		buffer.WriteString(time.Unix(response.Timestamp.Seconds, int64(response.Timestamp.Nanos)).String())
+		buffer.WriteString("\"")
+
+		buffer.WriteString(",\"isDelete\":")
+		buffer.WriteString("\"")
+		buffer.WriteString(strconv.FormatBool(response.IsDelete))
+		buffer.WriteString("\"")
+
+		buffer.WriteString("}")
+		bArrayMemberAlreadyWritten = true
+	}
+	buffer.WriteString("]")
+	return shim.Success(buffer.Bytes())
 }
 func (s *SmartContract) getMaxID(APIstub shim.ChaincodeStubInterface) sc.Response {
 	maxAsBytes, _ := APIstub.GetState("ID")
